@@ -1,9 +1,15 @@
 const http = require("http");
 const Room = require("./models/room")
 const mongoose = require('mongoose');
+const dotenv = require("dotenv");
 
+dotenv.config({path:"./config.env"});
+
+const { SuccessHandler, ErrorHandler } = require('./resHandle');
+
+const DB =  process.env.DATABASE.replace('<password>',process.env.DATABASE_PASSWORD)
 // 連接資料庫
-mongoose.connect('mongodb+srv://rikkubook:rikku0305@cluster0.a15er.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
+mongoose.connect(DB)
 .then(()=>{
   console.log('資料庫連線成功')
 }).catch((error)=>{
@@ -18,7 +24,8 @@ const requestListener =async (req,res) => {
     'Content-Type': 'application/json' ,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Content-Length, X-Requested-With',
     'Access-Control-Allow-Origin':  '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS,DELETE'}
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS,DELETE'
+  }
 
     let body = ''
     req.on('data', chunk =>{
@@ -27,107 +34,54 @@ const requestListener =async (req,res) => {
 
       if(req.url =="/rooms" && req.method=="GET"){ //取得
         const rooms = await Room.find(); 
-        res.writeHead(200, header)
-        res.write(JSON.stringify({
-          "status": "success",
-          rooms
-        }))
-        res.end()
+        SuccessHandler(res,rooms)
       }else if( req.url =="/rooms" && req.method=="POST"){
         req.on('end', async()=>{
           try{
             const data =JSON.parse(body);
-            const newRoom = await Room.create( // 不產生新的實體
+            const newRoom = await Room.create(
               {
                 name: data.name,
                 price: data.price,
                 rating: data.rating,
               })
-            res.writeHead(200, header)
-            res.write(JSON.stringify({
-              "status": "success",
-              rooms: newRoom
-            }))
-            res.end()
+            SuccessHandler(res,newRoom)
           }catch(error){
-            res.writeHead(400,header)
-            res.write(JSON.stringify({
-              "status": "false",
-              "message": "欄位沒有正確，或沒有此ID",
-              "error": error
-            }))
-            console.log(error)
-            res.end()
+            ErrorHandler(res, error , 400)
           }
         })
       }else if( req.url =="/rooms" && req.method=="DELETE"){
         await Room.deleteMany({});
-        res.writeHead(200, header)
-        res.write(JSON.stringify({
-          "status": "success",
-          rooms: []
-        }))
-        res.end()
+        SuccessHandler(res,[])
       }else if( req.url.startsWith('/rooms/') && req.method == 'DELETE'){
         const rooms = await Room.find(); 
         const id = req.url.split('/').pop();
         Room.findByIdAndDelete(id)
         .then(()=>{
-          res.writeHead(200, header)
-          res.write(JSON.stringify({
-            "status": "success",
-            rooms
-          }))
-          res.end()
+          SuccessHandler(res,rooms)
         }).catch((error)=>{
-          res.writeHead(400,header)
-          res.write(JSON.stringify({
-            "status": "false",
-            "message": "欄位沒有正確，或沒有此ID",
-            "error": error
-          }))
-          res.end()
+          ErrorHandler(res, error , 400)
         })
       }else if( req.url.startsWith('/rooms/') && req.method == 'PATCH'){
         const id = req.url.split('/').pop();
         req.on('end',async ()=>{ // 打進來的資料 確保組好了 body的資料
-            const rooms = await Room.find(); 
             const data =JSON.parse(body);
             Room.findByIdAndUpdate(id, data)
-            .then(()=>{
-              res.writeHead(200, header)
-              res.write(JSON.stringify({
-                "status": "success",
-                rooms
-              }))
-              res.end()
+            .then(async()=>{
+              const rooms = await Room.find(); 
+              SuccessHandler(res,rooms)
             }).catch((error)=>{
-              console.log(error)
-              res.writeHead(400,header)
-              res.write(JSON.stringify({
-                "status": "false",
-                "message": "欄位沒有正確，或沒有此ID",
-                "error": error
-              }))
-              res.end()
+              ErrorHandler(res, error , 400)
             })
         })
       }
       else if(req.method == "OPTIONS"){
-        res.writeHead(200,header);
-        res.end();
+        SuccessHandler(res,null)
       }else{
-        res.writeHead(400,header)
-        res.write(JSON.stringify({
-          "status": "false",
-          "message": "無此路由",
-          "error": error
-        }))
-        console.log(error)
-        res.end()
+        ErrorHandler(res,{},400)
       }
 }
 const server = http.createServer(requestListener);
-server.listen(3005,()=>{
-  console.log("Server is running on port 3005");
+server.listen(process.env.PORT,()=>{
+  console.log(  `Server is running on port ${process.env.PORT}`);
 });
