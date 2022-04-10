@@ -1,5 +1,6 @@
 const http = require("http");
 const Room = require("./models/room")
+const Post = require("./models/posts")
 const mongoose = require('mongoose');
 const dotenv = require("dotenv");
 
@@ -77,6 +78,32 @@ const requestListener =async (req,res) => {
       }
       else if(req.method == "OPTIONS"){
         SuccessHandler(res,null)
+      }
+
+      if(req.url =="/posts" && req.method=="GET"){
+        const posts = await Post.find({"name":"Alis"}); 
+        SuccessHandler(res,posts)
+      }else if( req.url =="/posts" && req.method=="POST"){
+        req.on('end', async()=>{
+          try{
+            const data =JSON.parse(body);
+            console.log(body)
+            const newPost = await Post.create(
+              {
+                name: data.name,
+                image: data.image,
+                content: data.content,
+                likes: data.likes,
+                comments: data.comments,
+                createdAt: data.createdAt,
+                type: data.type,
+                tags: data.tags,
+              })
+            SuccessHandler(res,newPost)
+          }catch(error){
+            ErrorHandler(res, error , 400)
+          }
+        })
       }else{
         ErrorHandler(res,{},400)
       }

@@ -12,7 +12,7 @@ const SuccessHandler = (res, data) => {
   res.writeHead(200, header)
   res.write(JSON.stringify({
     "status": "success",
-    rooms: data
+    "data": data
   }))
   res.end()
 }
