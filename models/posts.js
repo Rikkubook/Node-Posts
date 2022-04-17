@@ -2,12 +2,19 @@ const mongoose = require('mongoose');
 
 const postsSchema = new mongoose.Schema(
   {
-      name: String,
+      name: {
+        type: String,
+        required: [true,"名稱必填"]
+      },
       image: String,
       content: {
-          type: String,
+        type: String,
+        required: [true,"內文必填"]
       },
-      likes: Number,
+      likes: {
+        type: Number,
+        default: 0
+      },
       comments: Number,
       createAt: {
         type: Date,
