@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { successHandler, errorHandler } = require('../handler');
 const Post = require("../models/posts")
-/* GET users listing. */
+
 router.get('/',async (req, res) => {
   const posts = await Post.find({}); 
   successHandler(res,posts)
